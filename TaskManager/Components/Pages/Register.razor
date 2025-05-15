@@ -1,0 +1,45 @@
+﻿@page "/Register"
+@attribute [AllowAnonymous]
+<PageTitle>Регистрация</PageTitle>
+
+@using Microsoft.AspNetCore.Authorization
+@using TaskManager.Data
+@using TaskManager.Interfaces
+@using TaskManager.Bots.Telegram;
+
+@inject ILoadingService LoadingService
+@inject TelegramBot TelegramBot;
+@inject NavigationManager NavigationManager
+
+<LoadingIndicator />
+
+<div class="container d-flex flex-column justify-content-center align-items-center" style="min-height: 100vh; padding-bottom: 40px">
+
+    <img src="/img/LogoApp.png" alt="Logo" class="img-fluid mb-3" style="max-width: 160px; height: auto;" />
+    <h1 class="mb-4 text-center glowing-text">Регистрация</h1>
+
+    <div class="col-md-6">
+        <div class="card shadow-lg">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <NavLink href="@ApplicationConstants.LOGIN_PAGE" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </NavLink>
+                </div>
+                <div class="text-center my-2">
+                    <h4>Зарегистрируйтесь через Telegram:</h4>
+                    <p>Отсканируйте QR-код или нажмите на кнопку ниже, чтобы перейти в Telegram бот и начать процесс регистрации.</p>
+                    <div style="max-width: 100%; overflow: hidden; margin-bottom: 20px;">
+                        @if (!string.IsNullOrEmpty(_qrCodeImageAsDataUri))
+                        {
+                            <img src="@_qrCodeImageAsDataUri" alt="QR Code" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" /> 
+                        }
+                    </div>
+                    <a href="@_telegramBotLink" class="btn btn-primary" target="_blank">
+                        Перейти в Telegram бот
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

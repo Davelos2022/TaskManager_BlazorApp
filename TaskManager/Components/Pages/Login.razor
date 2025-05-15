@@ -1,0 +1,53 @@
+﻿@page "/Login"
+@attribute [AllowAnonymous]
+<PageTitle>Вход в систему</PageTitle>
+
+@using Microsoft.AspNetCore.Authorization
+@using TaskManager.Components.Pages
+@using TaskManager.Models
+@using TaskManager.Services;
+@using TaskManager.Interfaces;
+
+@inject IAccountService AccountService
+@inject NavigationManager NavigationManager
+
+<LoadingIndicator />
+
+<div class="container d-flex flex-column justify-content-center align-items-center" style="min-height: 100vh;">
+   
+    <img src="/img/LogoApp.png" alt="Logo" class="img-fluid mb-3" style="max-width: 160px; height: auto;" />
+    <h1 class="mb-4 text-center glowing-text">Вход в систему</h1>
+
+    <div class="col-md-6">
+        <div class="card shadow-lg">
+            <div class="card-body">               
+                <EditForm EditContext="@_editContext" OnValidSubmit="@LoginUser" FormName="LoginForm">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="validation-summary" />
+
+                    <div class="mb-3">
+                        <label for="Email" class="form-label">Email:</label>
+                        <InputText id="Email"
+                                   type="email"
+                                   class="@( "form-control " + (_editContext.GetValidationMessages(() => _loginModel.Email).Any() ? "is-invalid" : ""))"
+                                   @bind-Value="_loginModel.Email" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Password" class="form-label">Password:</label>
+                        <InputText id="Password"
+                                   type="password"
+                                   class="@( "form-control " + (_editContext.GetValidationMessages(() => _loginModel.Password).Any() ? "is-invalid" : ""))"
+                                   @bind-Value="_loginModel.Password" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Вход</button>         
+                </EditForm>
+
+                <p class="mt-3 text-center">
+                    Нет аккаунта? <NavLink href="Register">Зарегистрируйся</NavLink>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

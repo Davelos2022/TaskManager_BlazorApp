@@ -1,0 +1,99 @@
+# Compiled Object files, Libraries, Executables, Created by compilers
+########################################################################
+*.com
+*.dll
+*.exe
+*.il
+*.pdb
+*.idb
+*.obj
+*.o
+*.lib
+*.so
+*.dylib
+*.suo
+*.user
+*.cache
+*.patch
+*.vspscc
+*.vssscc
+*.vspolicy
+*.DotSettings.su.DotSettings
+_ReSharper*/EnvironmentId
+*.orig
+*.bak
+*.swp
+*.swo
+*.DS_Store
+
+# NuGet Packages
+########################################################################
+packages/
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# Visual Studio files
+########################################################################
+.vs/
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+ClientSettings.json
+_UpgradeReport_Files/
+*.publishsettings
+
+# .NET Core SDK and project system files
+########################################################################
+[Mm]igration[Ee]xecutable/
+*.AssemblyInfo.cs
+*.csproj.vspscc
+*.sln.docstates
+project.lock.json
+publish/
+out/
+
+# User Secrets
+########################################################################
+secrets.json
+
+# ASP.NET Temporary Files
+########################################################################
+/temp/
+/tmp/
+_static_files/
+App_Data/
+
+# Logs and Temporary Files
+########################################################################
+*.log
+*.tmp
+*.temp
+[Tt]est[Rr]esult*/
+
+# Build artifacts
+########################################################################
+Debug/
+Release/
+
+# Publishing folder
+publish/
+
+# Rider
+*.iml
+.idea/
+*.esproj
+*.[Ii]njection.Settings
+*.runsettings
+
+# Others
+*.DS_Store
+node_modules/
+yarn-error.log
+.env
+.history
+*.vscode

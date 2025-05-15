@@ -1,0 +1,331 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Менеджер задач</PageTitle>
+<HeadContent>
+    <meta name="description" content="Персональный менеджер задач. Управление задачами. Напоминание о задачах в Telegram" />
+</HeadContent>
+
+@using TaskManager.Data;
+@using TaskManager.Interfaces
+@using TaskManager.Models;
+
+@inject ILoadingService LoadingService
+@inject IAccountService AccountService
+@inject ITaskService TaskService
+@inject IUtilService UtilService
+@inject INotificationService NotificationService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<LoadingIndicator />
+<Profile />
+
+<!-- Main view page -->
+<div class="container" style="display: flex; flex-direction: column; min-height: 100vh;">
+    <div class="table-container table-responsive position-relative">
+        <div class="table-head d-flex justify-content-start mb-2">
+            <button class="btn btn-primary me-2" @onclick="() => ShowTasks(completed: false)">Текущие задачи</button>
+            <button class="btn btn-success" @onclick="() => ShowTasks(completed: true)">Выполненные задачи</button>
+        </div>
+
+        @if (_tasks == null || _tasks.Count == 0)
+        {
+            <div class="table-content">
+                <div class="table-container table-responsive text-center">
+                    <h6>@(!_showCompleted ? ApplicationConstants.NOT_ACTIVATE_TASK : ApplicationConstants.NOT_COMPLETED_TASK)</h6>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="table-content">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class=@(_showCompleted ? null : "col-auto d-none d-md-table-cell") title="Статус задачи"><i class="fas fa-check-square fa-lg non-clickable"></i></th>
+                            <th title="Название задачи"><i class="fa fa-clipboard fa-lg non-clickable"></i></th>
+                            <th class="d-none d-md-table-cell" title="Описание"><i class="fa fa-align-left fa-lg non-clickable"></i></th>
+                            <th class=@(_showCompleted ?"col-auto d-none d-md-table-cell" : null) title="Приоритет"><i class="fa fa-exclamation-circle fa-lg non-clickable"></i></th>
+                            <th class="col-auto d-none d-md-table-cell" title="Сроки"><i class="fa fa-calendar-alt fa-lg non-clickable"></i></th>
+                            <th title="Действия"><i class="fa fa-cogs fa-lg non-clickable"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksList">
+                        @if (_tasks is not null)
+                        {
+                            @foreach (var task in _tasks)
+                            {
+                                <tr data-task-id="@task.Id" @onclick="() => ShowDetails(task)">
+                                    <td class=@(task.IsCompleted ? null : "d-none d-md-table-cell")>
+                                        @if (task.IsCompleted)
+                                        {
+                                            <i class="fas fa-check-square fa-lg" style="color:green"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-square fa-lg"></i>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (task.Title.Length > ApplicationConstants.MAX_LEGHT_PREVIEW_NAME_TASK)
+                                        {
+                                            @task.Title.Substring(0, ApplicationConstants.MAX_LEGHT_PREVIEW_NAME_TASK)
+                                            @("...")
+                                        }
+                                        else
+                                        {
+                                            @task.Title
+                                        }
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        @if (task.Description.Length > ApplicationConstants.MAX_LEGHT_PREVIEW_DESCRIPTION)
+                                        {
+                                            @task.Description.Substring(0, ApplicationConstants.MAX_LEGHT_PREVIEW_DESCRIPTION)
+                                            @("...")
+                                        }
+                                        else
+                                        {
+                                            @task.Description
+                                        }
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        @{
+                                            var priorityInfo = GetPriorityInfo(task.Priority);
+                                        }
+                                        <span style="@priorityInfo.Style"><strong>@priorityInfo.DisplayText</strong></span>
+                                    </td>
+                                    <td class=@(task.IsCompleted ? "d-none d-md-table-cell" : null)>@UtilService.FormatDate(task.DueDate.Value)</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <span class="btn-info-task mx-1" title="Подробнее" style="cursor: pointer;" @onclick="() => ShowDetails(task)" @onclick:stopPropagation="true">
+                                                <i class="fa fa-bars fa-lg"></i>
+                                            </span>
+                                            <span class="btn-edit-task mx-1" title="Редактировать" style="cursor: pointer;" @onclick="() => ShowEdit(task)" @onclick:stopPropagation="true">
+                                                <i class="fas fa-edit fa-lg"></i>
+                                            </span>
+                                            <span class="btn-delete-task mx-1" title="Удалить" style="cursor: pointer;" @onclick="() => RemoveTask(task)" @onclick:stopPropagation="true">
+                                                <i class="fas fa-trash-alt fa-lg"></i>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (_isAdminMode && _users is not null)
+        {
+            <span class="send-message-icon mx-1" title="Отправить уведомление" @onclick="ShowSendMessage">
+                <i class="fa-sharp fa-solid fa-comment fa-lg";"></i>
+            </span>
+            <div class="selected-user">
+                <select class="form-select" @onchange="OnSelectedUser">
+                    <option value="">- Мой профиль -</option>
+                    @foreach (var user in _users)
+                    {
+                        <option value="@user.TelegramID" selected="@(_selectedTelegramId == user.TelegramID)">
+                            @user.FirstName (@("@" + user.TelegramID))</option>
+                    }
+                </select>
+            </div>
+
+        }
+        <span class="add-task-icon mx-1" title="Добавить задачу" @onclick="ShowAddModal">
+            <i class="fa fa-plus fa-xl"></i>
+        </span>
+    </div>
+
+    <!-- Modal for Add Task -->
+    <div class="modal fade @(_showAddModal ? "show d-block" : null)" id="addModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить задачу</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseAddModal">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@_newTask" OnValidSubmit="AddTask">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="Title" class="form-label">Название задачи:</label>
+                            <InputText id="Title" class="form-control" @bind-Value="_newTask.Title" />
+                            <ValidationMessage For="@(() => _newTask.Title)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Description" class="form-label">Описание задачи:</label>
+                            <InputTextArea id="Description" class="form-control input-textarea" @bind-Value="_newTask.Description" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Priority" class="form-label">Приоритет задачи:</label>
+                            <InputSelect id="Priority" class="form-select" @bind-Value="_newTask.Priority">
+                                @foreach (var priority in Enum.GetValues(typeof(PriorityModel)))
+                                {
+                                    var priorityInfo = GetPriorityInfo((PriorityModel)priority);
+                                    <option value="@priority">@priorityInfo.DisplayText</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="DueDate" class="form-label">Срок до:</label>
+                            <InputDate id="DueDate" class="form-control" @bind-Value="_newTask.DueDate" />
+                            <ValidationMessage For="@(() => _newTask.DueDate)" class="text-danger" />
+                        </div>
+                        @if (_isAdminMode && _users is not null)
+                        {
+                            <div class="mb-3">
+                                <label for="AssignTo" class="form-label">Назначить задачу:</label>
+                                <InputSelect id="AssignTo" class="form-select" @bind-Value="_selectedTelegramId">
+                                    <option value="">Мне</option>
+                                    @foreach (var user in _users)
+                                    {
+                                        <option value="@user.TelegramID">@user.FirstName (@("@" + user.TelegramID))</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        }
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseAddModal">Отмена</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Details -->
+    <div class="modal fade @(_showDetailsModal ? "show d-block" : null)" id="detailsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Информация о задачи</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseDetails">
+                    </button>
+                </div>
+                <div class="modal-body" style="word-wrap: break-word;">
+                    @if (_selectedTask != null)
+                    {
+                        <p><strong>Название задачи:</strong> @_selectedTask.Title</p>
+                        <p><strong>Описание:</strong> <span style="word-wrap: break-word; white-space: pre-wrap;"><br>@_selectedTask.Description</span></p>
+                        <p>
+                            <strong>Приоритет:&nbsp;</strong>
+                            @{
+                                var priorityInfo = GetPriorityInfo(_selectedTask.Priority);
+                            }
+                            <span style="@priorityInfo.Style">@priorityInfo.DisplayText</span>
+                        </p>
+                        <p><strong>Срок до:</strong> @UtilService.FormatDate(_selectedTask.DueDate.Value)</p>
+                        <p><strong>Статус:</strong> @(_selectedTask.IsCompleted ? ApplicationConstants.COMPLETED_TEXT : ApplicationConstants.NOT_COMPLETED_TEXT)</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @onclick="CloseDetails">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Edit-->
+    <div class="modal fade @(_showEditModal ? "show d-block" : null)" id="editModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактирование задачи</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseEdit">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @if (_selectedTask != null)
+                    {
+                        <EditForm Model="@_selectedTask" OnValidSubmit="UpdateTask">
+                            <DataAnnotationsValidator />
+
+                            <div class="mb-3">
+                                <label for="EditTitle" class="form-label">Название задачи:</label>
+                                <InputText id="EditTitle" class="form-control" @bind-Value="_selectedTask.Title" />
+                                <ValidationMessage For="@(() => _selectedTask.Title)" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="EditDescription" class="form-label">Описание:</label>
+                                <InputTextArea id="EditDescription" class="form-control input-textarea" @bind-Value="_selectedTask.Description" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="EditPriority" class="form-label">Приоритет:</label>
+                                <InputSelect id="EditPriority" class="form-select" @bind-Value="_selectedTask.Priority">
+                                    @foreach (var priority in Enum.GetValues(typeof(PriorityModel)))
+                                    {
+                                        var priorityInfo = GetPriorityInfo((PriorityModel)priority);
+                                        <option value="@priority">@priorityInfo.DisplayText</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="EditDueDate" class="form-label">Срок до:</label>
+                                <InputDate id="EditDueDate" class="form-control" @bind-Value="_selectedTask.DueDate" />
+                                <ValidationMessage For="@(() => _selectedTask.DueDate)" class="text-danger" />
+                            </div>
+
+                            <div class="container d-flex flex-column align-items-center">
+                                <p class="mb-1"><strong>Выполнено</strong></p>
+                                <div class="mb-3">
+                                    <InputCheckbox id="EditIsCompleted" class="form-check-input larger-checkbox" @bind-Value="_selectedTask.IsCompleted" />
+                                </div>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+                <div class="modal-footer my-3">
+                    <button type="submit" class="btn btn-primary" @onclick="UpdateTask">Сохранить</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEdit">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for SendMessage -->
+    <div class="modal fade @(_showMessageModal ? "show d-block" : null)" id="sendMessageModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Новое оповещение</h5>
+                        <p>Оповестить всех пользователей</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseSendMessage"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="MessageText" class="form-label">Сообщение:</label>
+                        <InputTextArea id="MessageText" class="form-control input-textarea" @bind-Value="_textMessage" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" @onclick="SendMessageFromAdmin">Отправить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @onclick="CloseSendMessage">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_selectedTask != null || _showAddModal || _showMessageModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+    }
+</div>
+
+<!-- Footer -->
+<footer class="footer text-light">
+    <div class="container text-center">
+        <img src="/img/LogoApp.png" alt="Логотип" class="footer-logo img-fluid" style="max-height: 100px;" />
+        <p>&copy; @DateTime.Now.Year "@ApplicationConstants.NAME_APPLICATION".</p>
+    </div>
+</footer>

@@ -1,0 +1,11 @@
+﻿@inject NavigationManager NavigationManager
+@using TaskManager.Data;
+@page "/RedirectToLogin"
+@code {
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.NavigateTo($"/", forceLoad: true);
+    }
+    
+}

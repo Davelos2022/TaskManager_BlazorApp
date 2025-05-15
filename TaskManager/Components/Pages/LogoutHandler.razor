@@ -1,0 +1,27 @@
+﻿@page "/Logout"
+@using Microsoft.AspNetCore.Authorization
+@using TaskManager.Data
+@using TaskManager.Interfaces
+@using TaskManager.Models
+@using TaskManager.Services
+
+@inject IAccountService AccountService
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await AccountService.LogoutUser();
+            if (!result.Succeeded) return;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return;
+        }
+
+        NavigationManager.NavigateTo(ApplicationConstants.LOGIN_PAGE);
+    }
+}

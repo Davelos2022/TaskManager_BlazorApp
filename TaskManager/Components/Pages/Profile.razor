@@ -1,0 +1,220 @@
+﻿@using TaskManager.Interfaces
+@using TaskManager.Models
+@using TaskManager.Data;
+
+@inject IAccountService AccountService
+@inject NavigationManager NavigationManager
+@inject ILoadingService LoadingService
+@inject INotificationService NotificationService
+@inject INotificationSettingsService NotificationSettingsService
+@inject IJSRuntime JSRuntime
+
+@if (_user != null)
+{
+    <div class="top-right-menu">
+        <div class="dropdown">
+            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                @if (string.IsNullOrEmpty(_profileUser.PreviewImageUrl))
+                {
+                    <span class="profile-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </span>
+                }
+                else
+                {
+                    <span class="avatar-placeholder">
+                        <img src="@_profileUser.PreviewImageUrl" alt="Profile Picture" class="rounded-circle avatar-placeholder" />
+                    </span>
+                }
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuLink">
+                <li><a class="dropdown-item" @onclick="ShowProfileModal">Мой профиль</a></li>
+                <li><a class="dropdown-item" @onclick="ShowSettingsModal">Настройки</a></li>
+                <li><a class="dropdown-item" @onclick="Logout">Выйти</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modal for Profile -->
+    <div class="modal fade @(_showProfileModal ? "show d-block" : null)" id="profileModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Мой профиль</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseProfileModal">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="avatar-container text-center">
+                        <div class="avatar-wrapper">
+                            @if (string.IsNullOrEmpty(_profileUser.PreviewImageUrl))
+                            {
+                                <i class="fas fa-user-circle avatar-fa rounded-circle avatar shadow-lg"></i>
+                            }
+                            else
+                            {
+                                <img src="@_profileUser.PreviewImageUrl" alt="Profile Picture" class="rounded-circle avatar" @onclick="ShowImagePreview" />
+                            }
+                            <div class="change-avatar-icon" @onclick="ShowUploadModal">
+                                <i class="fas fa-edit fa-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container text-center">
+                        <div class="info-container text-center">
+                            <p><strong>Имя:</strong> @_profileUser.FirstName</p>
+                            @if (!string.IsNullOrWhiteSpace(_profileUser.Email))
+                            {
+                                <p><strong>Email:</strong> @_profileUser.Email</p>
+                            }
+                            <p><strong>Telegram:</strong> @("@" + _profileUser.TelegramID)</p>
+                        </div>
+                    </div>              
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Image Preview -->
+@if (_showImageModal)
+{
+    <div class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" @onclick="CloseImagePreview" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@_profileUser.PreviewImageUrl" class="img-fluid" alt="Full Size Avatar" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Update Profile -->
+@if (_showUploadModal)
+{
+    <div class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактирование профиля</h5>
+                    <button type="button" class="btn-close" @onclick="CloseUploadModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm EditContext="@_editContextProfile" OnValidSubmit="UploadPofile">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="Photo" class="form-label">Аватар:</label>
+                            <InputFile OnChange="OnInputFileChange" class="form-control" accept=".jpg, .jpeg, .png, .webp" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Name" class="form-label">Имя:</label>
+                            <InputText id="FirstName" class="form-control" @bind-Value="_profileUser.FirstName" />
+                            <ValidationMessage For="@(() => _profileUser.FirstName)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-secondary" @onclick="ToggleChangePassword">
+                                @(_profileUser.ChangePasswordRequested ? "Скрыть панель" : "Сменить пароль")
+                            </button>
+                        </div>
+
+                        @if (_profileUser.ChangePasswordRequested)
+                        {
+                            <div class="mb-3">
+                                <label for="oldPassword" class="form-label">Текущий пароль:</label>
+                                <InputText id="oldPassword"
+                                type="password"
+                                class="@( "form-control " + (_editContextProfile.GetValidationMessages(() => _profileUser.OldPassword).Any() ? "is-invalid" : ""))"
+                                @bind-Value="_profileUser.OldPassword" />
+                                <ValidationMessage For="@(() => _profileUser.OldPassword)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">Новый пароль:</label>
+                                <InputText id="newPassword"
+                                type="password"
+                                class="@( "form-control " + (_editContextProfile.GetValidationMessages(() => _profileUser.NewPassword).Any() ? "is-invalid" : ""))"
+                                @bind-Value="_profileUser.NewPassword" />
+                                <ValidationMessage For="@(() => _profileUser.NewPassword)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Подтверждение нового пароля:</label>
+                                <InputText id="confirmPassword"
+                                type="password"
+                                class="@( "form-control " + (_editContextProfile.GetValidationMessages(() => _profileUser.ConfirmPassword).Any() ? "is-invalid" : ""))"
+                                @bind-Value="_profileUser.ConfirmPassword" />
+                                <ValidationMessage For="@(() => _profileUser.ConfirmPassword)" class="text-danger" />
+                            </div>
+                        }
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Закрыть</button>
+                        </div>
+                    </EditForm>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Settings -->
+@if (_showSettingsModal)
+{
+    <div class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Настройки уведомлений</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSettingsModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm EditContext="@_editContextSettings" OnValidSubmit="SaveSettings">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="validation-summary" />
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="NotifyOnTaskAdded" class="form-check-input" @bind-Value="_settings.NotifyOnTaskAdded" />
+                            <label class="form-check-label mx-3" for="NotifyOnTaskAdded" style="padding-top: .4rem">Уведомлять о добавлении задачи</label>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="NotifyOnTaskChanged" class="form-check-input" @bind-Value="_settings.NotifyOnTaskChanged" />
+                            <label class="form-check-label mx-3" for="NotifyOnTaskChanged" style="padding-top: .4rem">Уведомлять о изменение задачи</label>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="NotifyOnTaskDeleted" class="form-check-input" @bind-Value="_settings.NotifyOnTaskDeleted" />
+                            <label class="form-check-label mx-3" for="NotifyOnTaskDeleted" style="padding-top: .4rem">Уведомлять об удалении задачи</label>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="NotifyOnTaskReminder" class="form-check-input" @bind-Value="_settings.NotifyOnTaskReminder" />
+                            <label class="form-check-label mx-3" for="NotifyOnTaskReminder" style="padding-top: .4rem">Уведомлять о напоминании задачи</label>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="NotifyOnTaskCompleted" class="form-check-input" @bind-Value="_settings.NotifyOnTaskCompleted" />
+                            <label class="form-check-label mx-3" for="NotifyOnTaskCompleted" style="padding-top: .4rem">Уведомлять о выполнение задачи</label>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseSettingsModal">Закрыть</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showImageModal || _showProfileModal || _showSettingsModal || _showUploadModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
