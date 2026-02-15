@@ -56,7 +56,9 @@ namespace TaskManager.Services
                         {
                             if (task.LastReminderSent == null || (now - task.LastReminderSent.Value) > _reminderThreshold)
                             {
-                                string message = string.Format(ApplicationConstants.NOTIFICATION_TASK_DEAD_LINE, task.Title, utilService.FormatDate(task.DueDate.Value));
+                                string message = string.Format(now <= task.DueDate ? ApplicationConstants.NOTIFICATION_TASK_DEAD_LINE
+                                    : ApplicationConstants.NOTIFICATION_TASK_DEAD, task.Title, utilService.FormatDate(task.DueDate.Value));
+
                                 await notificationService.SendNotification(task.User, message);
                                 task.LastReminderSent = now;
                             }

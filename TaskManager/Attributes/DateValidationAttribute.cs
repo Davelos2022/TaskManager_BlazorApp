@@ -14,7 +14,7 @@ namespace TaskManager.Attributes
         public override bool IsValid(object? value)
         {
             DateTime? date = (DateTime?)value;
-            return date >= DateTime.Now;
+            return date.Value.Day >= DateTime.Now.Day;
         }
     }
 }

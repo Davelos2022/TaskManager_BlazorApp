@@ -118,17 +118,8 @@ namespace TaskManager.Bots.Telegram
 
         private async Task SendWelcomeMessageAsync(long chatId)
         {
-            var replyKeyboard = new ReplyKeyboardMarkup(new[]
-            {
-                 new KeyboardButton[] {ApplicationConstants.BUTTON_START_APP_TG, ApplicationConstants.BUTTON_REGISTER_TG}
-            })
-            {
-                ResizeKeyboard = true,
-                OneTimeKeyboard = false
-            };
-
             await _botClient.SendMessage(
-                chatId, string.Format(ApplicationConstants.HELLO_MESSAGE, ApplicationConstants.NAME_APPLICATION), replyMarkup: replyKeyboard
+                chatId, string.Format(ApplicationConstants.HELLO_MESSAGE, ApplicationConstants.NAME_APPLICATION), replyMarkup: GetMenuApp()
             );
         }
 
@@ -136,16 +127,17 @@ namespace TaskManager.Bots.Telegram
         {
             var user = await _accountService.GetUserByIDTelegram(username);
 
+
             if (user != null)
             {
                 await _botClient.SendMessage(
                     chatId,
-                    string.Format(ApplicationConstants.MESSAGE_SIGIN_USER, username, ApplicationConstants.NAME_APPLICATION)
+                    string.Format(ApplicationConstants.MESSAGE_SIGIN_USER, username, ApplicationConstants.NAME_APPLICATION), replyMarkup: GetMenuApp()
                 );
             }
             else
             {
-                await _botClient.SendMessage(chatId, ApplicationConstants.NOT_FOUND_COMMAND_MESSAGE);
+                await _botClient.SendMessage(chatId, ApplicationConstants.NOT_FOUND_COMMAND_MESSAGE, replyMarkup: GetMenuApp());
             }
         }
 
@@ -374,6 +366,20 @@ namespace TaskManager.Bots.Telegram
                 Console.WriteLine($"Error: {ex.Message}");
                 await _botClient.SendMessage(chatID, ApplicationConstants.ERROR_MESSAGE);
             }
+        }
+
+        private ReplyKeyboardMarkup GetMenuApp()
+        {
+            var replyKeyboard = new ReplyKeyboardMarkup(new[]
+{
+                 new KeyboardButton[] {ApplicationConstants.BUTTON_START_APP_TG, ApplicationConstants.BUTTON_REGISTER_TG}
+            })
+            {
+                ResizeKeyboard = true,
+                OneTimeKeyboard = false
+            };
+
+            return replyKeyboard;
         }
     }
 }

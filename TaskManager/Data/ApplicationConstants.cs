@@ -55,7 +55,8 @@
         #region Notification
 
         public const string NOTIFICATION_TASK_DEAD_LINE = "Задача \"{0}\" должна быть выполнена до {1}.";
-        public const string NOTIFICATION_TASK_ADDED = "Добавлена новая задача \"{0}\" Выполнить до {1}";
+        public const string NOTIFICATION_TASK_DEAD = "Задача \"{0}\" просрочена, Сроки задачи были до {1}.";
+        public const string NOTIFICATION_TASK_ADDED = "Добавлена новая задача \"{0}\" Приоритет {1}, Выполнить до {2}";
         public const string NOTIFICATION_TASK_CHANGED = "Задача \"{0}\" была обновлена";
         public const string NOTIFICATION_TASK_REMOVE = "Задача \"{0}\" удалена";
         public const string NOTIFICATION_TASK_COMPLETED = "Задача \"{0}\" выполнена!";
