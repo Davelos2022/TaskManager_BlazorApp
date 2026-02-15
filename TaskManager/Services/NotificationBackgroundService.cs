@@ -5,16 +5,21 @@ namespace TaskManager.Services
 {
     public class NotificationBackgroundService : BackgroundService
     {
+        #region Properties
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly TimeSpan _reminderLead = TimeSpan.FromHours(ApplicationConstants.NOTICE_COUNTDOWN_LEAD_HOURS);
         private readonly TimeSpan _resendInterval = TimeSpan.FromMinutes(ApplicationConstants.NOTIFICATION_RESEND_INTERVAL_MINUTES);
         private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(ApplicationConstants.NOTIFICATION_CHECK_INTERVAL_MINUTES);
+        #endregion
 
+        #region Initialiation
         public NotificationBackgroundService(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         }
+        #endregion
 
+        #region Methods
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -77,5 +82,6 @@ namespace TaskManager.Services
                 }
             }
         }
+        #endregion
     }
 }

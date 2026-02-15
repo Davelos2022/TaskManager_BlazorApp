@@ -259,7 +259,7 @@ namespace TaskManager.Components.Pages
             switch (notificationType)
             {
                 case NotificationTypeModel.TaskAdded:
-                    message = string.Format(ApplicationConstants.NOTIFICATION_TASK_ADDED, task.Title,
+                    message = string.Format(ApplicationConstants.NOTIFICATION_TASK_ADDED, task.Title, task.Priority,
                         UtilService.FormatDate(task.DueDate.Value));
                     break;
                 case NotificationTypeModel.TaskDeleted:

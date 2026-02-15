@@ -14,7 +14,7 @@ namespace TaskManager.Attributes
         public override bool IsValid(object? value)
         {
             if (value is not DateTime date) return false;
-            return date >= DateTime.UtcNow;
+            return date.Date >= DateTime.UtcNow.Date;
         }
     }
 }
