@@ -55,7 +55,7 @@
         #region Notification
 
         public const string NOTIFICATION_TASK_DEAD_LINE = "Задача \"{0}\" должна быть выполнена до {1}.";
-        public const string NOTIFICATION_TASK_DEAD = "Задача \"{0}\" просрочена, Сроки задачи были до {1}.";
+        public const string NOTIFICATION_TASK_OVERDUE = "Задача \"{0}\" просрочена, Сроки задачи были до {1}.";
         public const string NOTIFICATION_TASK_ADDED = "Добавлена новая задача \"{0}\" Приоритет {1}, Выполнить до {2}";
         public const string NOTIFICATION_TASK_CHANGED = "Задача \"{0}\" была обновлена";
         public const string NOTIFICATION_TASK_REMOVE = "Задача \"{0}\" удалена";
@@ -134,10 +134,11 @@
         public const bool REQUIRQ_LOWERCASE = true;
 
         //Notification Task
-        public const int INTERVAL_MINUTES = 180;
-        public const int INTERVAL_HOUSE = 70;
-        public const int MIN_HOUSE_NOTIFICATION = 6;
-        public const int MAX_HOUSE_NOTIFICATION = 18;
+        public const int NOTICE_COUNTDOWN_LEAD_HOURS = 70;
+        public const int NOTIFICATION_RESEND_INTERVAL_MINUTES = 180;
+        public const int NOTIFICATION_CHECK_INTERVAL_MINUTES = 1;  
+        public const int NOTIFICATION_START_HOUR = 6;
+        public const int NOTIFICATION_END_HOUR = 18;
 
         //Telegram Bot
         public const int QR_SIZE_HEIGHT = 300;

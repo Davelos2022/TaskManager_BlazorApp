@@ -13,8 +13,8 @@ namespace TaskManager.Attributes
 
         public override bool IsValid(object? value)
         {
-            DateTime? date = (DateTime?)value;
-            return date.Value.Day >= DateTime.Now.Day;
+            if (value is not DateTime date) return false;
+            return date >= DateTime.UtcNow;
         }
     }
 }
