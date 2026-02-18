@@ -1,6 +1,5 @@
-﻿using SkiaSharp;
-using SkiaSharp.QrCode.Image;
-using TaskManager.Data;
+﻿using QRCoder;
+using QRCodeGenerator = QRCoder.QRCodeGenerator;
 
 namespace TaskManager.Components.Pages
 {
@@ -28,28 +27,26 @@ namespace TaskManager.Components.Pages
             {
                 _telegramBotLink = TelegramBot.TelegramBotUrl;
 
-                var options = new Vector2Slim(ApplicationConstants.QR_SIZE_HEIGHT,ApplicationConstants.QR_SIZE_WIDTH);
-                var qrCode = new QrCode(_telegramBotLink, options);
+                if (string.IsNullOrEmpty(_telegramBotLink))
+                    throw new InvalidOperationException("TelegramBotUrl не задан");
 
-                using var memoryStream = new MemoryStream();
-                qrCode.GenerateImage(memoryStream); 
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrData = qrGenerator.CreateQrCode(_telegramBotLink, QRCodeGenerator.ECCLevel.Q);
+                var qrPngBytes = new PngByteQRCode(qrData).GetGraphic(20);
 
-                memoryStream.Seek(0, SeekOrigin.Begin);
-
-                using var image = SKImage.FromEncodedData(memoryStream.ToArray());
-                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-
-                _qrCodeImageAsDataUri = string.Format("data:image/png;base64,{0}", Convert.ToBase64String(data.ToArray()));
+                _qrCodeImageAsDataUri =
+                    $"data:image/png;base64,{Convert.ToBase64String(qrPngBytes)}";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error generating QR code: {ex}");
+                _qrCodeImageAsDataUri = "";
             }
             finally
             {
                 LoadingService.IsLoading = false;
-                StateHasChanged(); 
+                StateHasChanged();
             }
+
         }
         #endregion
     }

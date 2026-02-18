@@ -54,12 +54,12 @@
 
         #region Notification
 
-        public const string NOTIFICATION_TASK_DEAD_LINE = "Задача \"{0}\" должна быть выполнена до {1}.";
-        public const string NOTIFICATION_TASK_OVERDUE = "Задача \"{0}\" просрочена, Сроки задачи были до {1}.";
-        public const string NOTIFICATION_TASK_ADDED = "Добавлена новая задача \"{0}\" Приоритет {1}, Выполнить до {2}";
-        public const string NOTIFICATION_TASK_CHANGED = "Задача \"{0}\" была обновлена";
-        public const string NOTIFICATION_TASK_REMOVE = "Задача \"{0}\" удалена";
-        public const string NOTIFICATION_TASK_COMPLETED = "Задача \"{0}\" выполнена!";
+        public const string NOTIFICATION_TASK_DEAD_LINE = "Задача \"{0}\" \nДолжна быть выполнена до: {1}.";
+        public const string NOTIFICATION_TASK_OVERDUE = "Задача \"{0}\" просрочена. \nСроки задачи были до {1}.";
+        public const string NOTIFICATION_TASK_ADDED = "Добавлена новая задача: \"{0}\" \nПриоритет: {1}\nВыполнить до: {2}";
+        public const string NOTIFICATION_TASK_CHANGED = "Задача: \"{0}\" была обновлена";
+        public const string NOTIFICATION_TASK_REMOVE = "Задача: \"{0}\" удалена";
+        public const string NOTIFICATION_TASK_COMPLETED = "Задача: \"{0}\" выполнена!";
         public const string NOTIFICATION_ADMIN = "Администратор: {0}";
         #endregion
 
@@ -136,7 +136,7 @@
         //Notification Task
         public const int NOTICE_COUNTDOWN_LEAD_HOURS = 70;
         public const int NOTIFICATION_RESEND_INTERVAL_MINUTES = 180;
-        public const int NOTIFICATION_CHECK_INTERVAL_MINUTES = 1;  
+        public const int NOTIFICATION_CHECK_INTERVAL_MINUTES = 100;  
         public const int NOTIFICATION_START_HOUR = 6;
         public const int NOTIFICATION_END_HOUR = 18;
 
@@ -150,7 +150,7 @@
         public const string REGISTER_CANCEL_DATA_NAME_TG = "cancel_registration";
         public const string REGISTER_CONFIM_DATA_NAME_TG = "confirm_registration";
 
-        public const string BUTTON_START_APP_TG = "📱 Приложение";
+        public const string BUTTON_START_APP_TG = "📱 Личный кабинет";
         public const string BUTTON_REGISTER_TG = "📝 Регистрация";
         public const string BUTTON_CANCEL_REGISTER_TG = "❌ Отменить регистрацию";
         public const string BUTTON_CANCEL_TG = "❌ Отменить";

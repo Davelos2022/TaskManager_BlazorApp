@@ -37,6 +37,7 @@ namespace TaskManager.Models
                 Priority = this.Priority,
                 DueDate = this.DueDate,
                 IsCompleted = this.IsCompleted,
+                UserId = this.UserId
             };
         }
     }

@@ -157,6 +157,22 @@ namespace TaskManager.Services
             }
         }
 
+        public async Task<ApplicationUser?> GetUserByID(string ID)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Id == ID);
+
+                return user;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return null;
+            }
+        }
+
         public async Task<ApplicationUser[]> GetAllUsers()
         {
             try

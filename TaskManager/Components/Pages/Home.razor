@@ -273,7 +273,19 @@
                                 <InputDate id="EditDueDate" class="form-control" @bind-Value="_selectedTask.DueDate" />
                                 <ValidationMessage For="@(() => _selectedTask.DueDate)" class="text-danger" />
                             </div>
-
+                            @if (_isAdminMode && _users is not null)
+                            {
+                                <div class="mb-3">
+                                    <label for="AssignTo" class="form-label">Назначить задачу:</label>
+                                    <InputSelect id="AssignTo" class="form-select" @bind-Value="_selectedTelegramId">
+                                        <option value="">Мне</option>
+                                        @foreach (var user in _users)
+                                        {
+                                            <option value="@user.TelegramID">@user.FirstName (@("@" + user.TelegramID))</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
                             <div class="container d-flex flex-column align-items-center">
                                 <p class="mb-1"><strong>Выполнено</strong></p>
                                 <div class="mb-3">

@@ -24,6 +24,7 @@
     <PackageReference Include="Microsoft.Identity.Client" Version="4.61.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.1" />
+    <PackageReference Include="QRCoder" Version="1.7.0" />
     <PackageReference Include="SkiaSharp.QrCode" Version="0.7.0" />
     <PackageReference Include="System.Formats.Asn1" Version="6.0.1" />
     <PackageReference Include="Telegram.Bot" Version="22.5.0" />

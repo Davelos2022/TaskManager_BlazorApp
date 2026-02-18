@@ -61,7 +61,6 @@ namespace TaskManager.Services
             try
             {
                 var maxOrder = await _context.Tasks.MaxAsync(t => (int?)t.SortOrder) ?? -1;
-
                 task.UserId = user.Id;
                 task.SortOrder = maxOrder + 1;
 
@@ -89,7 +88,7 @@ namespace TaskManager.Services
             }
         }
 
-        public async Task UpdateTask(TaskModel task)
+        public async Task UpdateTask(ApplicationUser user, TaskModel task)
         {
             try
             {
@@ -101,6 +100,7 @@ namespace TaskManager.Services
                     existingTask.Description = task.Description;
                     existingTask.Priority = task.Priority;
                     existingTask.DueDate = task.DueDate;
+                    existingTask.UserId = user.Id;
                     existingTask.IsCompleted = task.IsCompleted;
 
                     _context.Tasks.Update(existingTask);

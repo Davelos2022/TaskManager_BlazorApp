@@ -17,6 +17,7 @@ namespace TaskManager.Components.Pages
         #endregion
 
         #region Properties
+        private ApplicationUser[] _users = Array.Empty<ApplicationUser>();
         private List<TaskModel> _allTasks = new List<TaskModel>();
         private List<TaskModel> _tasks = new List<TaskModel>();
 
@@ -26,8 +27,7 @@ namespace TaskManager.Components.Pages
         private bool _isAdminMode = false;
         private string _selectedTelegramId = string.Empty;
         private string _textMessage = string.Empty;
-        private ApplicationUser[] _users = Array.Empty<ApplicationUser>();
-
+       
         private bool _showCompleted = false;
         private bool _showAddModal = false;
         private bool _showDetailsModal = false;
@@ -176,13 +176,18 @@ namespace TaskManager.Components.Pages
                             _textMessage = GetMessageTasks(_selectedTask, NotificationTypeModel.TaskCompleted);
                             await NotificationService.SendNotification(user, _textMessage, NotificationTypeModel.TaskCompleted);
                         }
+                        else if (_selectedTask.UserId != user.Id)
+                        {
+                            _textMessage = GetMessageTasks(_selectedTask, NotificationTypeModel.TaskAdded);
+                            await NotificationService.SendNotification(user, _textMessage, NotificationTypeModel.TaskAdded);
+                        }
                         else
                         {
                             _textMessage = GetMessageTasks(_selectedTask, NotificationTypeModel.TaskChanged);
                             await NotificationService.SendNotification(user, _textMessage, NotificationTypeModel.TaskChanged);
                         }
 
-                        await TaskService.UpdateTask(_selectedTask);
+                        await TaskService.UpdateTask(user, _selectedTask);
                         await RefreshTasks();
                     }
                 }
@@ -259,7 +264,7 @@ namespace TaskManager.Components.Pages
             switch (notificationType)
             {
                 case NotificationTypeModel.TaskAdded:
-                    message = string.Format(ApplicationConstants.NOTIFICATION_TASK_ADDED, task.Title, task.Priority,
+                    message = string.Format(ApplicationConstants.NOTIFICATION_TASK_ADDED, task.Title, GetPriorityInfo(task.Priority).DisplayText,
                         UtilService.FormatDate(task.DueDate.Value));
                     break;
                 case NotificationTypeModel.TaskDeleted:
