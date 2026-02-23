@@ -13,7 +13,7 @@ namespace TaskManager.Data
 
         public DbSet<TaskModel> Tasks { get; set; } = default!;
         public DbSet<NotificationSettingsModel> NotificationSettings { get; set; }
-
+        public DbSet<TaskAttachment> TaskAttachments { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

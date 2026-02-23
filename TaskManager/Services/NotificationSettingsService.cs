@@ -11,15 +11,13 @@ namespace TaskManager.Services
     {
         #region Properties
         private readonly ApplicationDbContext _context;
-        private readonly AuthenticationStateProvider _authenticationState;
         private readonly UserManager<ApplicationUser> _userManager;
         #endregion
 
         #region Initialiation
-        public NotificationSettingsService(ApplicationDbContext context, AuthenticationStateProvider stateProvider, UserManager<ApplicationUser> userManager)
+        public NotificationSettingsService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context ?? throw new ArgumentNullException(nameof(_context));
-            _authenticationState = stateProvider;
             _userManager = userManager ?? throw new ArgumentNullException(nameof(_userManager));
         }
         #endregion

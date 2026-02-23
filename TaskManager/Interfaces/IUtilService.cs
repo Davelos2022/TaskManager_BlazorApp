@@ -5,5 +5,6 @@
         string FormatDate(DateTime date, string format = "dd.MM.yyyy");
         bool IsStrongPassword(string password);
         bool IsValidEmail(string email);
+        string FormatFileSize(long bytes);
     }
 }

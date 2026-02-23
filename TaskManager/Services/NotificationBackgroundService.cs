@@ -1,5 +1,8 @@
-﻿using TaskManager.Data;
+﻿using Microsoft.Extensions.Options;
+using System.Collections.Generic;
+using TaskManager.Data;
 using TaskManager.Interfaces;
+using TaskManager.Models;
 
 namespace TaskManager.Services
 {
@@ -7,21 +10,28 @@ namespace TaskManager.Services
     {
         #region Properties
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly TimeSpan _reminderLead = TimeSpan.FromHours(ApplicationConstants.NOTICE_COUNTDOWN_LEAD_HOURS);
-        private readonly TimeSpan _resendInterval = TimeSpan.FromMinutes(ApplicationConstants.NOTIFICATION_RESEND_INTERVAL_MINUTES);
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(ApplicationConstants.NOTIFICATION_CHECK_INTERVAL_MINUTES);
+        private readonly NotificationOptions _opts;
+
+        private TimeSpan _reminderLead;
+        private TimeSpan _resendInterval;
+        private TimeSpan _checkInterval;
         #endregion
 
         #region Initialiation
-        public NotificationBackgroundService(IServiceScopeFactory scopeFactory)
+        public NotificationBackgroundService(IServiceScopeFactory scopeFactory,IOptions<NotificationOptions> opts)
         {
-            _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+            _scopeFactory = scopeFactory;
+            _opts = opts.Value;
         }
         #endregion
 
         #region Methods
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _reminderLead = TimeSpan.FromHours(_opts.ReminderLeadHours);
+            _resendInterval = TimeSpan.FromMinutes(_opts.ResendIntervalMinutes);
+            _checkInterval = TimeSpan.FromMinutes(_opts.CheckIntervalMinutes);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -40,45 +50,60 @@ namespace TaskManager.Services
 
         private async Task CheckDeadlinesAsync(CancellationToken stoppingToken)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var taskRepository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-            var utilService = scope.ServiceProvider.GetRequiredService<IUtilService>();
+            using IServiceScope scope = _scopeFactory.CreateScope();
+            ITaskRepository taskRepo = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
+            INotificationService notificationSv = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            INotificationSettingsService settingsSv = scope.ServiceProvider.GetRequiredService<INotificationSettingsService>();
+            IUtilService utilSv = scope.ServiceProvider.GetRequiredService<IUtilService>();
 
-            var now = DateTime.UtcNow;
-            var tasksToNotify = await taskRepository.GetDueTasksAsync(now, _reminderLead);
+            DateTime nowUtc = DateTime.UtcNow;
+            IEnumerable<TaskModel> tasksToNotify = await taskRepo.GetDueTasksAsync(nowUtc, _reminderLead);
+
             if (tasksToNotify == null) return;
 
-            var start = ApplicationConstants.NOTIFICATION_START_HOUR;
-            var end = ApplicationConstants.NOTIFICATION_END_HOUR;
+            int startHour = _opts.StartHour;
+            int endHour = _opts.EndHour;
 
-            bool withinWindow = (start <= end) ? (now.Hour >= start && now.Hour <= end) : (now.Hour >= start || now.Hour <= end);
-
-            if (withinWindow)
+            foreach (var task in tasksToNotify)
             {
-                foreach (var task in tasksToNotify)
+                if (stoppingToken.IsCancellationRequested)
+                    break;
+
+                ApplicationUser user = task.User;
+                if (user == null) continue;
+
+                NotificationSettingsModel userSettings = await settingsSv.GetSettingsAsync(user);
+                int offsetMin = userSettings.TimeZoneOffsetMinutes;
+                DateTime nowLocal = nowUtc.AddMinutes(-offsetMin);
+
+                bool withinLocalWindow = (startHour <= endHour)
+                    ? (nowLocal.Hour >= startHour && nowLocal.Hour <= endHour)
+                    : (nowLocal.Hour >= startHour || nowLocal.Hour <= endHour);
+
+                if (!withinLocalWindow) continue;
+
+                try
                 {
-                    if (stoppingToken.IsCancellationRequested) break;
-                    if (task?.User == null) continue;
-
-                    try
+                    if (task.LastReminderSent == null ||
+                       (nowUtc - task.LastReminderSent.Value) > _resendInterval)
                     {
-                        if (task.LastReminderSent == null || (now - task.LastReminderSent.Value) > _resendInterval)
-                        {
-                            string message = string.Format(
-                                now <= task.DueDate ? ApplicationConstants.NOTIFICATION_TASK_DEAD_LINE : ApplicationConstants.NOTIFICATION_TASK_OVERDUE,
-                                task.Title,
-                                utilService.FormatDate(task.DueDate.Value)
-                            );
+                        string template = nowUtc <= task.DueDate
+                            ? ApplicationConstants.NOTIFICATION_TASK_DEAD_LINE
+                            : ApplicationConstants.NOTIFICATION_TASK_OVERDUE;
 
-                            await notificationService.SendNotification(task.User, message);
-                            task.LastReminderSent = now;
-                        }
+                        string message = string.Format(
+                            template,
+                            task.Title,
+                            utilSv.FormatDate(task.DueDate.Value)
+                        );
+
+                        await notificationSv.SendNotification(user, message);
+                        task.LastReminderSent = nowUtc;
                     }
-                    catch (Exception exTask)
-                    {
-                        Console.WriteLine($"Failed to notify task {task?.Id}: {exTask}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to notify task {task.Id}: {ex}");
                 }
             }
         }

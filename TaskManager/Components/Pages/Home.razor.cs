@@ -24,10 +24,17 @@ namespace TaskManager.Components.Pages
         private TaskModel _newTask = new TaskModel();
         private TaskModel? _selectedTask;
 
+        private List<FileUploadModel> _tempFiles = new();
+        private List<AttachmentInfo> _attachments = new();
+        private string? _fileSizeError;
+
+        private enum SortOption { None, ByPriority, ByDueDate, ByTitle }
+        private SortOption _currentSort = SortOption.None;
+
         private bool _isAdminMode = false;
         private string _selectedTelegramId = string.Empty;
         private string _textMessage = string.Empty;
-       
+
         private bool _showCompleted = false;
         private bool _showAddModal = false;
         private bool _showDetailsModal = false;
@@ -109,18 +116,17 @@ namespace TaskManager.Components.Pages
                     if (user != null)
                     {
                         await TaskService.AddTaskToUser(user, _newTask);
+
+                        foreach (var f in _tempFiles)
+                            if (f.IsNewFile) await TaskRepository.UploadAsync(_newTask.Id, f.FileName, f.ContentType!, f.Content!);
+
                         await NotificationService.SendNotification(user, _textMessage, NotificationTypeModel.TaskAdded);
                         await RefreshTasks();
                         await CloseAddModal();
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
-                }
                 finally
                 {
-                    _newTask = new TaskModel();
                     LoadingService.IsLoading = false;
                     ShowTasks(_showCompleted);
                 }
@@ -187,21 +193,77 @@ namespace TaskManager.Components.Pages
                             await NotificationService.SendNotification(user, _textMessage, NotificationTypeModel.TaskChanged);
                         }
 
+                        if (_tempFiles.Count > 0)
+                        {
+                            foreach (var f in _tempFiles)
+                            {
+                                if (f.IsDeleted) await TaskRepository.DeleteAttachmentAsync(f.Id);
+                                else if (f.IsNewFile) await TaskRepository.UploadAsync(_selectedTask.Id, f.FileName, f.ContentType!, f.Content!);
+                            }
+                        }
+
                         await TaskService.UpdateTask(user, _selectedTask);
                         await RefreshTasks();
+                        await CloseEdit();
+
+                        ShowTasks(_showCompleted);
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
                 }
                 finally
                 {
                     LoadingService.IsLoading = false;
-                    await CloseEdit();
-                    ShowTasks(_showCompleted);
                 }
             }
+        }
+
+        private async Task OnFilesSelected(InputFileChangeEventArgs e)
+        {
+            try
+            {
+                LoadingService.IsLoading = true;
+                _fileSizeError = null;
+
+                foreach (var file in e.GetMultipleFiles())
+                {
+                    if (file.Size > ApplicationConstants.MAX_SIZE_FILE)
+                    {
+                        _fileSizeError = string.Format(ApplicationConstants.ERROR_UPLOAD_FILE, 
+                            file.Name, UtilService.FormatFileSize(ApplicationConstants.MAX_SIZE_FILE));
+
+                        continue;
+                    }
+
+                    await using var ms = new MemoryStream();
+                    await file.OpenReadStream(ApplicationConstants.MAX_SIZE_FILE).CopyToAsync(ms);
+
+                    _tempFiles.Add(new FileUploadModel
+                    {
+                        FileName = file.Name,
+                        ContentType = file.ContentType,
+                        Content = ms.ToArray(),
+                        IsNewFile = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _tempFiles.Clear();
+                Console.WriteLine(ex.ToString());
+            }
+            finally
+            {
+                LoadingService.IsLoading = false;
+            }
+        }
+
+        private async Task LoadAttachmentInfos(Guid taskId)
+        {
+            _attachments = (await TaskRepository.GetAttachmentsInfoAsync(taskId)).ToList();
+            _tempFiles = _attachments.Select(a => new FileUploadModel
+            {
+                FileName = a.FileName,
+                Id = a.Id
+            }).ToList();
         }
 
         private async Task<ApplicationUser?> GetUser()
@@ -224,7 +286,31 @@ namespace TaskManager.Components.Pages
         {
             _showCompleted = completed;
             _tasks = _allTasks.Where(t => t.IsCompleted == _showCompleted).ToList();
+
+            switch (_currentSort)
+            {
+                case SortOption.ByPriority:
+                    _tasks = _tasks.OrderBy(t => t.Priority).ToList();
+                    break;
+                case SortOption.ByDueDate:
+                    _tasks = _tasks.OrderBy(t => t.DueDate).ToList();
+                    break;
+                case SortOption.ByTitle:
+                    _tasks = _tasks.OrderBy(t => t.Title).ToList();
+                    break;
+                case SortOption.None:
+                default:
+                    _tasks = _tasks.OrderBy(t => t.SortOrder).ToList();
+                    break;
+            }
+
             StateHasChanged();
+        }
+
+        private void ChangeSort(SortOption option)
+        {
+            _currentSort = option;
+            ShowTasks(_showCompleted);
         }
 
         private async Task RefreshTasks()
@@ -300,7 +386,9 @@ namespace TaskManager.Components.Pages
         private async Task ShowAddModal()
         {
             _newTask = new TaskModel();
+            _fileSizeError = null;
             _showAddModal = true;
+
             await ResetScroll();
             await ScrollSiteControll(true);
             StateHasChanged();
@@ -309,16 +397,23 @@ namespace TaskManager.Components.Pages
         private async Task CloseAddModal()
         {
             _showAddModal = false;
+            _tempFiles.Clear();
+
             await ScrollSiteControll(false);
             StateHasChanged();
         }
 
         private async Task ShowDetails(TaskModel task)
         {
+            LoadingService.IsLoading = true;
             _selectedTask = task.Clone();
-            _showDetailsModal = true;
+
+            await LoadAttachmentInfos(_selectedTask.Id);
             await ResetScroll();
             await ScrollSiteControll(true);
+
+            _showDetailsModal = true;
+            LoadingService.IsLoading = false;
             StateHasChanged();
         }
 
@@ -326,16 +421,25 @@ namespace TaskManager.Components.Pages
         {
             _showDetailsModal = false;
             _selectedTask = null;
+            _tempFiles.Clear();
+            _attachments.Clear();
+
             await ScrollSiteControll(false);
             StateHasChanged();
         }
 
         private async Task ShowEdit(TaskModel task)
         {
+            LoadingService.IsLoading = true;
+            _fileSizeError = null;
             _selectedTask = task.Clone();
-            _showEditModal = true;
+
+            await LoadAttachmentInfos(_selectedTask.Id);
             await ResetScroll();
             await ScrollSiteControll(true);
+
+            _showEditModal = true;
+            LoadingService.IsLoading = false;
             StateHasChanged();
         }
 
@@ -343,6 +447,8 @@ namespace TaskManager.Components.Pages
         {
             _showEditModal = false;
             _selectedTask = null;
+            _tempFiles.Clear();
+
             await ScrollSiteControll(false);
             StateHasChanged();
         }

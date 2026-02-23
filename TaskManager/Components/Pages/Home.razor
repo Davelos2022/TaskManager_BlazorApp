@@ -1,17 +1,19 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-
+@attribute [Authorize]
 <PageTitle>Менеджер задач</PageTitle>
 <HeadContent>
     <meta name="description" content="Персональный менеджер задач. Управление задачами. Напоминание о задачах в Telegram" />
 </HeadContent>
 
+@using Microsoft.AspNetCore.Authorization
 @using TaskManager.Data;
 @using TaskManager.Interfaces
 @using TaskManager.Models;
 
 @inject ILoadingService LoadingService
 @inject IAccountService AccountService
+@inject ITaskRepository TaskRepository
 @inject ITaskService TaskService
 @inject IUtilService UtilService
 @inject INotificationService NotificationService
@@ -24,10 +26,39 @@
 <!-- Main view page -->
 <div class="container" style="display: flex; flex-direction: column; min-height: 100vh;">
     <div class="table-container table-responsive position-relative">
-        <div class="table-head d-flex justify-content-start mb-2">
-            <button class="btn btn-primary me-2" @onclick="() => ShowTasks(completed: false)">Текущие задачи</button>
-            <button class="btn btn-success" @onclick="() => ShowTasks(completed: true)">Выполненные задачи</button>
+        <div class="table-head d-flex flex-wrap align-items-center mb-3">
+            <button class="btn btn-primary me-2" @onclick="() => ShowTasks(false)">
+                В очереди
+            </button>
+            <button class="btn btn-success" @onclick="() => ShowTasks(true)">
+                Выполненные
+            </button>
+            <div class="dropdown ms-auto">
+                <button class="sort-filter-icon dropdown-toggle no-caret" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-filter"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item @( _currentSort == SortOption.None ? "active" : "" )"
+                           @onclick="() => ChangeSort(SortOption.None)">По умолчанию</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item @( _currentSort == SortOption.ByPriority ? "active" : "" )"
+                           @onclick="() => ChangeSort(SortOption.ByPriority)">Приоритет</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item @( _currentSort == SortOption.ByDueDate ? "active" : "" )"
+                           @onclick="() => ChangeSort(SortOption.ByDueDate)">Срок</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item @( _currentSort == SortOption.ByTitle ? "active" : "" )"
+                           @onclick="() => ChangeSort(SortOption.ByTitle)">A→Z</a>
+                    </li>
+                </ul>
+            </div>
         </div>
+
 
         @if (_tasks == null || _tasks.Count == 0)
         {
@@ -46,7 +77,7 @@
                             <th class=@(_showCompleted ? null : "col-auto d-none d-md-table-cell") title="Статус задачи"><i class="fas fa-check-square fa-lg non-clickable"></i></th>
                             <th title="Название задачи"><i class="fa fa-clipboard fa-lg non-clickable"></i></th>
                             <th class="d-none d-md-table-cell" title="Описание"><i class="fa fa-align-left fa-lg non-clickable"></i></th>
-                            <th class=@(_showCompleted ?"col-auto d-none d-md-table-cell" : null) title="Приоритет"><i class="fa fa-exclamation-circle fa-lg non-clickable"></i></th>
+                            <th class=@(_showCompleted ? "col-auto d-none d-md-table-cell" : null) title="Приоритет"><i class="fa fa-exclamation-circle fa-lg non-clickable"></i></th>
                             <th class="col-auto d-none d-md-table-cell" title="Сроки"><i class="fa fa-calendar-alt fa-lg non-clickable"></i></th>
                             <th title="Действия"><i class="fa fa-cogs fa-lg non-clickable"></i></th>
                         </tr>
@@ -119,7 +150,7 @@
         @if (_isAdminMode && _users is not null)
         {
             <span class="send-message-icon mx-1" title="Отправить уведомление" @onclick="ShowSendMessage">
-                <i class="fa-sharp fa-solid fa-comment fa-lg";"></i>
+                <i class="fa-sharp fa-solid fa-comment fa-lg" ;"></i>
             </span>
             <div class="selected-user">
                 <select class="form-select" @onchange="OnSelectedUser">
@@ -127,7 +158,8 @@
                     @foreach (var user in _users)
                     {
                         <option value="@user.TelegramID" selected="@(_selectedTelegramId == user.TelegramID)">
-                            @user.FirstName (@("@" + user.TelegramID))</option>
+                            @user.FirstName (@("@" + user.TelegramID))
+                        </option>
                     }
                 </select>
             </div>
@@ -150,7 +182,6 @@
                 <div class="modal-body">
                     <EditForm Model="@_newTask" OnValidSubmit="AddTask">
                         <DataAnnotationsValidator />
-
                         <div class="mb-3">
                             <label for="Title" class="form-label">Название задачи:</label>
                             <InputText id="Title" class="form-control" @bind-Value="_newTask.Title" />
@@ -161,10 +192,9 @@
                             <label for="Description" class="form-label">Описание задачи:</label>
                             <InputTextArea id="Description" class="form-control input-textarea" @bind-Value="_newTask.Description" />
                         </div>
-
                         <div class="mb-3">
-                            <label for="Priority" class="form-label">Приоритет задачи:</label>
-                            <InputSelect id="Priority" class="form-select" @bind-Value="_newTask.Priority">
+                            <label for="EditPriority" class="form-label">Приоритет:</label>
+                            <InputSelect id="EditPriority" class="form-select" @bind-Value="_newTask.Priority">
                                 @foreach (var priority in Enum.GetValues(typeof(PriorityModel)))
                                 {
                                     var priorityInfo = GetPriorityInfo((PriorityModel)priority);
@@ -172,6 +202,34 @@
                                 }
                             </InputSelect>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Вложения:</label>
+                            <InputFile multiple="true"
+                                       OnChange="@(e => OnFilesSelected(e))"
+                                       class="form-control" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(_fileSizeError))
+                        {
+                          <div class="alert alert-warning py-2">
+                          @_fileSizeError
+                          </div>
+                        }
+                        @if (_tempFiles.Count > 0)
+                        {
+                            <div class="attachment-list">
+                                @foreach (var file in _tempFiles)
+                                {
+                                    <div class="attachment-item">
+                                        @file.FileName
+                                        <button type="button"
+                                                class="btn-close btn-close-white"
+                                                @onclick="() => _tempFiles.Remove(file)"
+                                                @onclick:stopPropagation="true">
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
 
                         <div class="mb-3">
                             <label for="DueDate" class="form-label">Срок до:</label>
@@ -212,16 +270,34 @@
                     @if (_selectedTask != null)
                     {
                         <p><strong>Название задачи:</strong> @_selectedTask.Title</p>
-                        <p><strong>Описание:</strong> <span style="word-wrap: break-word; white-space: pre-wrap;"><br>@_selectedTask.Description</span></p>
-                        <p>
-                            <strong>Приоритет:&nbsp;</strong>
-                            @{
-                                var priorityInfo = GetPriorityInfo(_selectedTask.Priority);
-                            }
-                            <span style="@priorityInfo.Style">@priorityInfo.DisplayText</span>
-                        </p>
+                        if (!string.IsNullOrWhiteSpace(_selectedTask.Description))
+                        {
+                            <p><strong>Описание:</strong> <span style="word-wrap: break-word; white-space: pre-wrap;"><br>@_selectedTask.Description</span></p>
+                            <p>
+                                <strong>Приоритет:&nbsp;</strong>
+                                @{
+                                    var priorityInfo = GetPriorityInfo(_selectedTask.Priority);
+                                }
+                                <span style="@priorityInfo.Style">@priorityInfo.DisplayText</span>
+                            </p>
+                        }
                         <p><strong>Срок до:</strong> @UtilService.FormatDate(_selectedTask.DueDate.Value)</p>
-                        <p><strong>Статус:</strong> @(_selectedTask.IsCompleted ? ApplicationConstants.COMPLETED_TEXT : ApplicationConstants.NOT_COMPLETED_TEXT)</p>
+                        <p><strong>Статус:</strong> @(_selectedTask.IsCompleted? ApplicationConstants.COMPLETED_TEXT: ApplicationConstants.NOT_COMPLETED_TEXT)</p>
+                        @if (_attachments.Any())
+                        {
+                            <p><strong>Вложения:</strong></p>
+                            <div class="attachment-list">
+                                @foreach (var att in _attachments)
+                                {
+                                    <div class="attachment-item">
+                                        <a href="@($"/attachment/download/{att.Id}")" target="_blank"
+                                           class="text-light text-decoration-none">
+                                            @att.FileName
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        }
                     }
                 </div>
                 <div class="modal-footer">
@@ -245,18 +321,15 @@
                     {
                         <EditForm Model="@_selectedTask" OnValidSubmit="UpdateTask">
                             <DataAnnotationsValidator />
-
                             <div class="mb-3">
                                 <label for="EditTitle" class="form-label">Название задачи:</label>
                                 <InputText id="EditTitle" class="form-control" @bind-Value="_selectedTask.Title" />
                                 <ValidationMessage For="@(() => _selectedTask.Title)" class="text-danger" />
                             </div>
-
                             <div class="mb-3">
                                 <label for="EditDescription" class="form-label">Описание:</label>
                                 <InputTextArea id="EditDescription" class="form-control input-textarea" @bind-Value="_selectedTask.Description" />
                             </div>
-
                             <div class="mb-3">
                                 <label for="EditPriority" class="form-label">Приоритет:</label>
                                 <InputSelect id="EditPriority" class="form-select" @bind-Value="_selectedTask.Priority">
@@ -267,12 +340,40 @@
                                     }
                                 </InputSelect>
                             </div>
-
                             <div class="mb-3">
                                 <label for="EditDueDate" class="form-label">Срок до:</label>
                                 <InputDate id="EditDueDate" class="form-control" @bind-Value="_selectedTask.DueDate" />
                                 <ValidationMessage For="@(() => _selectedTask.DueDate)" class="text-danger" />
                             </div>
+                            @if (_tempFiles.Count > 0)
+                            {
+                                <p><strong>Вложения:</strong></p>
+                                <div class="mb-3">
+                                    <InputFile multiple="true"
+                                               OnChange="@(e => OnFilesSelected(e))" class="form-control" />
+                                    @if (!string.IsNullOrEmpty(_fileSizeError))
+                                    {
+                                        <div class="alert alert-warning py-2">
+                                            @_fileSizeError
+                                        </div>
+                                    }
+                                </div>
+        
+                                <div class="attachment-list">
+                                    @foreach (var u in _tempFiles.Where(u => !u.IsDeleted))
+                                    {
+                                        <div class="attachment-item">
+                                            @u.FileName
+                                            <button type="button"
+                                                    class="btn-close btn-close-white"
+                                                    aria-label="Удалить"
+                                                    @onclick="() => { u.IsDeleted = true; }"
+                                                    @onclick:stopPropagation="true">
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
                             @if (_isAdminMode && _users is not null)
                             {
                                 <div class="mb-3">

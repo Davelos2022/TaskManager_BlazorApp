@@ -1,16 +1,16 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.HttpOverrides;
-using Telegram.Bot;
+using TaskManager.Bots.Telegram;
 using TaskManager.Components;
 using TaskManager.Components.Account;
-using TaskManager.Services;
 using TaskManager.Data;
 using TaskManager.Interfaces;
 using TaskManager.Models;
-using TaskManager.Bots.Telegram;
 using TaskManager.Repositories;
+using TaskManager.Services;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,11 +99,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = options.DefaultPolicy;
-});
+builder.Services.Configure<NotificationOptions>(
+    builder.Configuration.GetSection(ApplicationConstants.NAME_NOTIFICATION_SETTINGS));
 
+builder.Services.AddAuthorization();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 
@@ -127,6 +126,7 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

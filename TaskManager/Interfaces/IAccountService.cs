@@ -14,8 +14,9 @@ namespace TaskManager.Interfaces
         Task<ApplicationUser[]> GetAllUsers();
         Task<IdentityResult> UpdateUser(ApplicationUser user);
         Task<ApplicationUser?> GetUserByEmail(string email);
-        Task<ApplicationUser?> GetUserByIDTelegram(string tgID);
         Task<ApplicationUser?> GetUserByID(string ID);
         Task<IdentityResult> ChangePassword(ApplicationUser user, string oldPassword, string newPassword);
+        Task<bool> SignInFromTelegramApp(string rawInitData, HttpContext http);
+        Task<ApplicationUser?> GetUserByIDTelegram(string tgID);
     }
 }

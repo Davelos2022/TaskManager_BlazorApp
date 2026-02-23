@@ -59,3 +59,6 @@ document.addEventListener('DOMContentLoaded', function () {
 window.onload = function () {
     Telegram.WebApp.ready();
 };
+
+//For TimeOffSetZone
+window.getTimeZoneOffset = () => new Date().getTimezoneOffset();

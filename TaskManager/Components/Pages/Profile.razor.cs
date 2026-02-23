@@ -37,7 +37,12 @@ namespace TaskManager.Components.Pages
             if (_user != null)
             {
                 _profileUser = new ProfileModel(_user);
-                _settings = await NotificationSettingsService.GetSettingsAsync(_user);
+
+                var settings = await NotificationSettingsService.GetSettingsAsync(_user);
+                _settings = settings ?? new NotificationSettingsModel { UserId = _user.Id };
+
+                await NotificationSettingsService.SaveSettingsAsync(_settings);
+
                 _editContextSettings = new EditContext(_settings);
                 _editContextProfile = new EditContext(_profileUser);
                 _messageStore = new ValidationMessageStore(_editContextProfile);
@@ -45,6 +50,7 @@ namespace TaskManager.Components.Pages
 
             LoadingService.IsLoading = false;
         }
+        
         #endregion
 
         #region Profile Modal

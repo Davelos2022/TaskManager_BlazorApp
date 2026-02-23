@@ -1,4 +1,6 @@
-﻿namespace TaskManager.Data
+﻿using System.Collections.Concurrent;
+
+namespace TaskManager.Data
 {
     public class ApplicationConstants
     {
@@ -14,6 +16,7 @@
         public const string INITIALIZATION_DRAG_DROP = "initializeDragAndDrop";
         public const string ADD_MODAL_OPEN = "toggleBodyClass.addModalOpen";
         public const string REMOVE_MODAL_OPEN = "toggleBodyClass.removeModalOpen";
+        public const string GET_TIME_ZONE_OFFSET = "getTimeZoneOffset";
         #endregion
 
         #region Messages Pop Up
@@ -47,6 +50,7 @@
 
         public const string ERROR_VALUE_TG = "Некорректный Telegram ID. Ожидается формат: @username";
         public const string ERROR_VALUE_EMAIL = "Некорректный Email";
+        public const string ERROR_UPLOAD_FILE = "Файл '{0}' превышает максимальный размер файла {1}";
 
         public const string ERROR_VALUE_PASSWORD_LEGTH = "Пароль должен содержать не менее {0} символов";
         public const string ERROR_PASSWORD_COMPARE = "Пароли не совпадают";
@@ -109,6 +113,7 @@
         public const string NAME_CONNECTION_BASE = "DefaultConnection";
         public const string NAME_CONNECTION_TELEGRAM = "TelegramTokenBot";
         public const string NAME_CONNECTION_TELEGRAMBOT_URL = "TelegramBotURL";
+        public const string NAME_NOTIFICATION_SETTINGS = "Notifications";
 
         public const string ERROR_CONNECTION_BY_BASE = "Connection string '{0}' not found.";
         public const string ERROR_CONNECTION_BY_TELEGRAM = "Connection telegram string '{0}' not found.";
@@ -125,6 +130,7 @@
         public const int MAX_LEGHT_PREVIEW_NAME_TASK = 35;
         public const int MIN_LEGHT_NAME = 2;
         public const int MAX_LEGHT_NAME = 12;
+        public const long MAX_SIZE_FILE = 50_000_000;
 
         //Password
         public const int MIN_LEGHT_PASSWORD = 6;
@@ -132,13 +138,6 @@
         public const bool REQUIRQ_DIGIT = true;
         public const bool REQUIRQ_UPPERCASE = true;
         public const bool REQUIRQ_LOWERCASE = true;
-
-        //Notification Task
-        public const int NOTICE_COUNTDOWN_LEAD_HOURS = 70;
-        public const int NOTIFICATION_RESEND_INTERVAL_MINUTES = 180;
-        public const int NOTIFICATION_CHECK_INTERVAL_MINUTES = 100;  
-        public const int NOTIFICATION_START_HOUR = 6;
-        public const int NOTIFICATION_END_HOUR = 18;
 
         //Telegram Bot
         public const int QR_SIZE_HEIGHT = 300;

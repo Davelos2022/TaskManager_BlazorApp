@@ -1,4 +1,4 @@
-/* General Style */
+﻿/* General Style */
 body {
     font-family: 'Roboto', sans-serif;
     background-color: rgba(0, 0, 0, 0.9);
@@ -118,13 +118,26 @@ h1, h2, h3, h4, h5, h6 {
         background-color: #000;
     }
 
-.btn-info-task {
-    width: 20px;
-    height: 20px;
-    color: black;
+.sort-filter-icon {
     cursor: pointer;
-    transition: background-color 0.15s ease-in-out;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.44rem 0.9rem;
+    border-radius: 0.30rem;
 }
+
+    .sort-filter-icon:hover {
+        background-color: #000;
+    }
+
+    .btn-info-task {
+        width: 20px;
+        height: 20px;
+        color: black;
+        cursor: pointer;
+        transition: background-color 0.15s ease-in-out;
+    }
 
     .btn-info-task:hover {
         color: #007bff;
@@ -194,6 +207,12 @@ h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
 }
 
+.dropdown-toggle.no-caret::after {
+    display: none !important;
+    content: none !important;
+}
+
+
 /* Task Style */
 .table-head {
     margin-top: 60px;
@@ -258,7 +277,8 @@ h1, h2, h3, h4, h5, h6 {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    margin-top: 30px;
+    margin-top: 33px;
+    margin-bottom: 33px;
 }
 
 .table {
@@ -281,6 +301,28 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1 !important;
     background: #007bff;
 }
+
+.attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.attachment-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: #007bff;
+    color: white;
+    border-radius: 0.25rem;
+}
+
+    .attachment-item .btn-close {
+        font-size: 0.6rem;
+        margin-left: 0.25rem;
+        opacity: 1;
+    }
 
 /* Check Box */
 .form-check-input {

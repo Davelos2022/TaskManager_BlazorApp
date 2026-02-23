@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TaskManager.Data;
 using TaskManager.Interfaces;
 using TaskManager.Models;
@@ -32,8 +34,14 @@ namespace TaskManager.Services
         #region Controller Account
         public async Task<IdentityResult> RegisterUser(RegisterModel model)
         {
-            var user = new ApplicationUser { UserName = model.Email, Email = model.Email, 
-                TelegramID = model.TelegramID, FirstName = model.FirstName, ChatId = model.ChatID};
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                TelegramID = model.TelegramID,
+                FirstName = model.FirstName,
+                ChatId = model.ChatID
+            };
 
             var result = await _userManager.CreateAsync(user, model.Password);
             return result;
@@ -87,7 +95,8 @@ namespace TaskManager.Services
         public async Task<bool> CheckAdminStatus()
         {
             var user = await GetCurrentUser();
-            return user.AdminUser;
+            if (user != null) return user.AdminUser;
+            else return false;
         }
 
         public async Task<IdentityResult> UpdateUser(ApplicationUser updatedUser)
@@ -141,21 +150,6 @@ namespace TaskManager.Services
             }
         }
 
-        public async Task<ApplicationUser?> GetUserByIDTelegram(string tgID)
-        {
-            try
-            {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.TelegramID == tgID);
-               
-                return user;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return null;
-            }
-        }
 
         public async Task<ApplicationUser?> GetUserByID(string ID)
         {
@@ -191,6 +185,54 @@ namespace TaskManager.Services
                 {
                     return null;
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return null;
+            }
+        }
+
+        public async Task<bool> SignInFromTelegramApp(string rawInitData, HttpContext http)
+        {
+            Dictionary<string, string> dict = QueryHelpers.ParseQuery(rawInitData)
+                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            string chatId = "";
+
+            if (dict.TryGetValue("user", out var jsonUser))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(jsonUser);
+                    chatId = doc.RootElement.GetProperty("id").GetInt32().ToString() ?? "";
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.ChatId == chatId);
+
+            if (user != null)
+            {
+                await _signInManager.SignInAsync(user, isPersistent: true);
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<ApplicationUser?> GetUserByIDTelegram(string tgID)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.TelegramID == tgID);
+
+                return user;
             }
             catch (Exception ex)
             {

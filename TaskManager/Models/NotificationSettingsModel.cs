@@ -13,6 +13,7 @@ namespace TaskManager.Models
         public bool NotifyOnTaskDeleted { get; set; }
         public bool NotifyOnTaskReminder { get; set; }
         public bool NotifyOnTaskCompleted { get; set; }
+        public int TimeZoneOffsetMinutes { get; set; }
 
         public ApplicationUser User { get; set; }
 

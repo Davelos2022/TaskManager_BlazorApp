@@ -48,6 +48,14 @@ namespace TaskManager.Services
         public string FormatDate(DateTime date, string format = "dd.MM.yyyy") =>
         date.ToString(format);
 
+        public string FormatFileSize(long bytes)
+        {
+            const long K = 1024;
+            const long M = K * 1024;
+            if (bytes >= M) return $"{bytes / (double)M:F2} МБ";
+            if (bytes >= K) return $"{bytes / (double)K:F2} КБ";
+            return $"{bytes} байт";
+        }
         #endregion
     }
 }
